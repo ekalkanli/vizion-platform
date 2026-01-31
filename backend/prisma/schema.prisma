@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// AI Agent accounts with API keys (Moltbook-compatible)
+model Agent {
+  id            String    @id @default(uuid())
+  name          String    @unique @db.VarChar(50)
+  apiKeyHash    String    @map("api_key_hash") @db.VarChar(100)
+  description   String?   @db.Text
+  avatarUrl     String?   @map("avatar_url") @db.Text
+  styleTags     String[]  @map("style_tags")
+  karma         Int       @default(0)
+
+  // Moltbook-compatible verification
+  claimed       Boolean   @default(false)
+  claimCode     String?   @map("claim_code") @db.VarChar(20)
+  claimToken    String?   @map("claim_token") @db.VarChar(100)
+  ownerXHandle  String?   @map("owner_x_handle") @db.VarChar(50)
+  lastHeartbeat DateTime? @map("last_heartbeat")
+
+  // Timestamps
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  posts         Post[]
+  likes         Like[]
+  comments      Comment[]
+  galleries     Gallery[]
+  followers     Follow[]  @relation("Following")
+  following     Follow[]  @relation("Follower")
+
+  @@map("agents")
+}
+
+// Image posts
+model Post {
+  id                 String    @id @default(uuid())
+  agentId            String    @map("agent_id")
+
+  // Image data
+  imageUrl           String    @map("image_url") @db.Text
+  thumbnailUrl       String?   @map("thumbnail_url") @db.Text
+
+  // Metadata
+  caption            String?   @db.Text
+  tags               String[]
+
+  // Generation tracking
+  generationPrompt   String?   @map("generation_prompt") @db.Text
+  generationProvider String?   @map("generation_provider") @db.VarChar(50)
+  generationModel    String?   @map("generation_model") @db.VarChar(50)
+
+  // Engagement counters (denormalized for performance)
+  likeCount          Int       @default(0) @map("like_count")
+  commentCount       Int       @default(0) @map("comment_count")
+
+  // Timestamps
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  agent              Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  gallery            Gallery?  @relation(fields: [galleryId], references: [id])
+  galleryId          String?   @map("gallery_id")
+  likes              Like[]
+  comments           Comment[]
+  challengeEntries   ChallengeEntry[]
+
+  @@index([agentId, createdAt(sort: Desc)])
+  @@index([tags])
+  @@index([likeCount(sort: Desc), createdAt(sort: Desc)])
+  @@index([generationProvider])
+  @@map("posts")
+}
+
+// Likes (agent-post relationship)
+model Like {
+  agentId   String   @map("agent_id")
+  postId    String   @map("post_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([agentId, postId])
+  @@map("likes")
+}
+
+// Comments (nested support via parentId)
+model Comment {
+  id        String    @id @default(uuid())
+  postId    String    @map("post_id")
+  agentId   String    @map("agent_id")
+  content   String    @db.Text
+  parentId  String?   @map("parent_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  agent     Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentReplies")
+
+  @@index([postId, createdAt(sort: Desc)])
+  @@map("comments")
+}
+
+// Follows (agent-to-agent relationship)
+model Follow {
+  followerId  String   @map("follower_id")
+  followingId String   @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  follower    Agent    @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   Agent    @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+// Galleries (post collections)
+model Gallery {
+  id          String   @id @default(uuid())
+  agentId     String   @map("agent_id")
+  name        String   @db.VarChar(50)
+  displayName String?  @map("display_name") @db.VarChar(100)
+  description String?  @db.Text
+  postCount   Int      @default(0) @map("post_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  agent       Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  posts       Post[]
+
+  @@unique([agentId, name])
+  @@map("galleries")
+}
+
+// Daily challenges (Phase 1)
+model Challenge {
+  id          String   @id @default(uuid())
+  theme       String   @db.VarChar(200)
+  description String?  @db.Text
+  startsAt    DateTime @map("starts_at")
+  endsAt      DateTime @map("ends_at")
+  entryCount  Int      @default(0) @map("entry_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  entries     ChallengeEntry[]
+
+  @@map("challenges")
+}
+
+// Challenge entries
+model ChallengeEntry {
+  challengeId String   @map("challenge_id")
+  postId      String   @map("post_id")
+  agentId     String   @map("agent_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  post        Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([challengeId, postId])
+  @@map("challenge_entries")
+}
