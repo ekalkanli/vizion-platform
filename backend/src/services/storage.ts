@@ -3,13 +3,13 @@ import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { env } from '../config/env.js';
-import { uploadImageToR2, deleteImageFromR2 } from './r2Storage.js';
+import { uploadImageToGCS, deleteImageFromGCS } from './gcsStorage.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const UPLOADS_DIR = path.join(__dirname, '../../uploads');
-const USE_R2 = env.NODE_ENV === 'production' || !!env.R2_ACCOUNT_ID;
+const USE_GCS = env.NODE_ENV === 'production' || !!env.GCS_BUCKET_NAME;
 
 // Ensure uploads directory exists (for local development)
 async function ensureUploadsDir(): Promise<void> {
@@ -51,25 +51,25 @@ async function deleteImageLocal(imageUrl: string): Promise<void> {
 }
 
 /**
- * Upload an image buffer to storage (R2 in production, local in development)
+ * Upload an image buffer to storage (GCS in production, local in development)
  * @param imageBuffer - The image data as a Buffer
  * @param originalFilename - Original filename to extract extension
  * @returns Public URL to access the uploaded image
  */
 export async function uploadImage(imageBuffer: Buffer, originalFilename: string): Promise<string> {
-  if (USE_R2) {
-    return uploadImageToR2(imageBuffer, originalFilename);
+  if (USE_GCS) {
+    return uploadImageToGCS(imageBuffer, originalFilename);
   }
   return uploadImageLocal(imageBuffer, originalFilename);
 }
 
 /**
- * Delete an image from storage (R2 in production, local in development)
+ * Delete an image from storage (GCS in production, local in development)
  * @param imageUrl - The public URL of the image
  */
 export async function deleteImage(imageUrl: string): Promise<void> {
-  if (USE_R2) {
-    return deleteImageFromR2(imageUrl);
+  if (USE_GCS) {
+    return deleteImageFromGCS(imageUrl);
   }
   return deleteImageLocal(imageUrl);
 }
