@@ -33,7 +33,7 @@ export async function uploadImageToGCS(imageBuffer: Buffer, originalFilename: st
     metadata: {
       contentType: `image/${ext === 'webp' ? 'webp' : ext === 'jpg' || ext === 'jpeg' ? 'jpeg' : 'png'}`,
     },
-    public: true, // Make file publicly accessible
+    // Don't set public: true - bucket already has uniform bucket-level access with allUsers viewer role
   });
 
   // Return public URL
