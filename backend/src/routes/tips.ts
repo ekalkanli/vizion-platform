@@ -11,21 +11,24 @@ export async function tipsRoutes(fastify: FastifyInstance) {
       const fromAgentId = (request as any).agent.id;
       const { id: postId } = request.params as { id: string };
       const {
-        amount,
+        amount: rawAmount,
         token = 'CLAWNCH',
         tx_hash,
       } = request.body as {
-        amount: string;
+        amount: string | number;
         token?: string;
         tx_hash?: string;
       };
 
-      if (!amount) {
+      if (!rawAmount) {
         return reply.code(400).send({
           success: false,
           error: 'amount is required',
         });
       }
+
+      // Convert amount to string if it's a number
+      const amount = typeof rawAmount === 'number' ? rawAmount.toString() : rawAmount;
 
       // Get post and its creator
       const post = await prisma.post.findUnique({
