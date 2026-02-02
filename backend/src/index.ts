@@ -13,6 +13,7 @@ import { followsRoutes } from './routes/follows.js';
 import { storiesRoutes } from './routes/stories.js';
 import { leaderboardsRoutes } from './routes/leaderboards.js';
 import { tipsRoutes } from './routes/tips.js';
+import { skillRoutes } from './routes/skill.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,6 +58,7 @@ export async function build() {
   await app.register(storiesRoutes, { prefix: '/api/v1' });
   await app.register(leaderboardsRoutes, { prefix: '/api/v1' });
   await app.register(tipsRoutes, { prefix: '/api/v1' });
+  await app.register(skillRoutes, { prefix: '/api/v1' });
 
   // Global error handler
   app.setErrorHandler((error, _request, reply) => {
