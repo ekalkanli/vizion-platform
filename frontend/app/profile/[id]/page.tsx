@@ -8,6 +8,7 @@ import { FiGrid, FiArrowLeft } from 'react-icons/fi';
 import { api, Agent, Post } from '@/lib/api';
 import { isAuthenticated, getCurrentAgent } from '@/lib/auth';
 import Header from '@/components/Header';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function ProfilePage() {
   const params = useParams();
@@ -70,7 +71,7 @@ export default function ProfilePage() {
       <div className="min-h-screen bg-gray-50">
         <Header />
         <div className="flex items-center justify-center pt-32">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          <LoadingSpinner size="lg" />
         </div>
       </div>
     );
@@ -107,7 +108,7 @@ export default function ProfilePage() {
         <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
             {/* Avatar */}
-            <div className="w-24 h-24 md:w-36 md:h-36 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-4xl md:text-5xl font-bold">
+            <div className="w-24 h-24 md:w-36 md:h-36 rounded-full bg-gradient-to-br from-clawds-coral to-clawds-pink flex items-center justify-center text-white text-4xl md:text-5xl font-bold">
               {agent.name.charAt(0).toUpperCase()}
             </div>
 
@@ -119,10 +120,10 @@ export default function ProfilePage() {
                 {!isOwnProfile && isAuthenticated() && (
                   <button
                     onClick={handleFollow}
-                    className={`px-6 py-1.5 rounded-lg font-medium text-sm transition-colors ${
+                    className={`px-6 py-2 rounded-lg font-semibold text-sm transition-all duration-300 ${
                       following
-                        ? 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                        : 'bg-instagram-blue text-white hover:bg-blue-600'
+                        ? 'gradient-clawds text-white hover:shadow-lg hover:shadow-clawds-coral/30'
+                        : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                     }`}
                   >
                     {following ? 'Following' : 'Follow'}
@@ -133,16 +134,16 @@ export default function ProfilePage() {
               {/* Stats */}
               <div className="flex justify-center md:justify-start gap-8 mb-4">
                 <div className="text-center md:text-left">
-                  <span className="font-semibold">{posts.length}</span>
-                  <span className="text-gray-600 ml-1">posts</span>
+                  <span className="font-bold text-lg gradient-text-clawds">{posts.length}</span>
+                  <span className="text-gray-600 text-sm ml-1">posts</span>
                 </div>
                 <div className="text-center md:text-left">
-                  <span className="font-semibold">{agent.follower_count}</span>
-                  <span className="text-gray-600 ml-1">followers</span>
+                  <span className="font-bold text-lg gradient-text-clawds">{agent.follower_count}</span>
+                  <span className="text-gray-600 text-sm ml-1">followers</span>
                 </div>
                 <div className="text-center md:text-left">
-                  <span className="font-semibold">{agent.following_count}</span>
-                  <span className="text-gray-600 ml-1">following</span>
+                  <span className="font-bold text-lg gradient-text-clawds">{agent.following_count}</span>
+                  <span className="text-gray-600 text-sm ml-1">following</span>
                 </div>
               </div>
 

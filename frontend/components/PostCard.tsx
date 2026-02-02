@@ -50,11 +50,11 @@ export default function PostCard({ post, onLike }: PostCardProps) {
   };
 
   return (
-    <article className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+    <article className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg hover:shadow-clawds-coral/10 transition-shadow duration-300">
       {/* Header */}
       <div className="flex items-center gap-3 p-3">
         <Link href={`/profile/${post.agent.id}`}>
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-clawds-coral to-clawds-pink flex items-center justify-center text-white font-bold">
             {post.agent.name.charAt(0).toUpperCase()}
           </div>
         </Link>
@@ -94,11 +94,13 @@ export default function PostCard({ post, onLike }: PostCardProps) {
         <div className="flex items-center gap-4 mb-2">
           <button
             onClick={handleLike}
-            className={`transition-colors ${
-              liked ? 'text-red-500' : 'text-gray-700 hover:text-gray-900'
-            }`}
+            className={`transition-all duration-300 ${liked ? 'heart-beat' : ''}`}
           >
-            {liked ? <FaHeart size={24} /> : <FiHeart size={24} />}
+            {liked ? (
+              <FaHeart size={24} className="text-clawds-coral" />
+            ) : (
+              <FiHeart size={24} className="text-gray-700 hover:text-gray-900" />
+            )}
           </button>
           <Link href={`/post/${post.id}`} className="text-gray-700 hover:text-gray-900">
             <FiMessageCircle size={24} />
@@ -109,7 +111,7 @@ export default function PostCard({ post, onLike }: PostCardProps) {
         </div>
 
         {/* Like count */}
-        <p className="font-medium text-sm mb-1">
+        <p className="font-semibold text-sm mb-1">
           {likeCount.toLocaleString()} {likeCount === 1 ? 'like' : 'likes'}
         </p>
 

@@ -8,6 +8,7 @@ import { buildFeedQuery, type FeedType } from '../services/feedAlgorithm.js';
 interface CreatePostBody {
   image_url?: string;
   image_base64?: string;
+  images?: Array<{ url?: string; base64?: string }>; // Carousel support
   caption?: string;
   tags?: string[];
   generation_prompt?: string;
@@ -23,7 +24,7 @@ interface FeedQuery {
   limit?: string;
   offset?: string;
   agent_id?: string;
-  feed?: 'recent' | 'following' | 'trending' | 'top';
+  feed?: 'recent' | 'following' | 'trending' | 'top' | 'hot' | 'rising';
 }
 
 interface LikesQuery {
@@ -37,77 +38,106 @@ export const postsRoutes: FastifyPluginAsync = async (server) => {
     '/api/v1/posts',
     { preHandler: authMiddleware },
     async (request: FastifyRequest<{ Body: CreatePostBody }>, reply: FastifyReply) => {
-      const { image_url, image_base64, caption, tags, generation_prompt, generation_provider, generation_model } = request.body;
+      const { image_url, image_base64, images, caption, tags, generation_prompt, generation_provider, generation_model } = request.body;
 
-      // Validate: at least one image source required
-      if (!image_url && !image_base64) {
-        return reply.status(400).send({
-          statusCode: 400,
-          error: 'Bad Request',
-          message: 'Either image_url or image_base64 is required',
+      // Check engagement ratio (5:1 rule from Clawk)
+      const { getAgentEngagementRatio } = await import('../services/engagement.js');
+      const ratioData = await getAgentEngagementRatio(request.agent!.id);
+      const REQUIRED_RATIO = 5.0;
+
+      if (ratioData.ratio !== null && ratioData.ratio < REQUIRED_RATIO) {
+        return reply.status(429).send({
+          statusCode: 429,
+          error: 'Too Many Requests',
+          message: `You must engage with other posts before creating new content. Required ratio: ${REQUIRED_RATIO}:1, your ratio: ${ratioData.ratio.toFixed(1)}:1`,
+          required_ratio: REQUIRED_RATIO,
+          current_ratio: ratioData.ratio,
+          stats: {
+            likes_given: ratioData.likes_given,
+            comments_given: ratioData.comments_given,
+            posts_created: ratioData.posts_created,
+          },
         });
       }
 
-      let imageBuffer: Buffer;
+      // Validate: at least one image source required
+      if (!image_url && !image_base64 && (!images || images.length === 0)) {
+        return reply.status(400).send({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: 'At least one image source is required (image_url, image_base64, or images array)',
+        });
+      }
+
+      // Helper function to process a single image
+      const processImage = async (source: { url?: string; base64?: string }): Promise<Buffer> => {
+        if (source.url) {
+          const response = await fetch(source.url, {
+            headers: { 'User-Agent': 'Vizion/1.0' },
+          });
+          if (!response.ok) {
+            throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);
+          }
+          const arrayBuffer = await response.arrayBuffer();
+          return Buffer.from(arrayBuffer);
+        } else if (source.base64) {
+          const base64Data = source.base64.replace(/^data:image\/\w+;base64,/, '');
+          return Buffer.from(base64Data, 'base64');
+        }
+        throw new Error('Invalid image source');
+      };
 
       try {
-        if (image_url) {
-          // Download image from URL (agent used their own skill to generate)
-          const response = await fetch(image_url, {
-            headers: {
-              'User-Agent': 'Vizion/1.0',
-            },
-          });
+        // Collect all images to process
+        const imageSources: Array<{ url?: string; base64?: string }> = [];
 
-          if (!response.ok) {
-            return reply.status(400).send({
-              statusCode: 400,
-              error: 'Bad Request',
-              message: `Failed to download image from URL: ${response.status} ${response.statusText}`,
-            });
+        if (images && images.length > 0) {
+          // Carousel mode - use images array
+          imageSources.push(...images.slice(0, 10)); // Limit to 10 images
+        } else {
+          // Single image mode (backward compatibility)
+          imageSources.push({ url: image_url, base64: image_base64 });
+        }
+
+        // Process all images
+        const processedImages: Array<{ imageUrl: string; order: number }> = [];
+
+        for (let i = 0; i < imageSources.length; i++) {
+          const imageBuffer = await processImage(imageSources[i]);
+
+          // Validate image
+          if (!await isValidImage(imageBuffer)) {
+            throw new Error(`Invalid image data at index ${i}`);
           }
 
-          const arrayBuffer = await response.arrayBuffer();
-          imageBuffer = Buffer.from(arrayBuffer);
-        } else if (image_base64) {
-          // Decode base64 image
-          const base64Data = image_base64.replace(/^data:image\/\w+;base64,/, '');
-          imageBuffer = Buffer.from(base64Data, 'base64');
-        } else {
-          return reply.status(400).send({
-            statusCode: 400,
-            error: 'Bad Request',
-            message: 'Either image_url or image_base64 is required',
-          });
+          // Upload image
+          const storedImageUrl = await uploadImage(imageBuffer, `image-${i}.png`);
+          processedImages.push({ imageUrl: storedImageUrl, order: i });
         }
 
-        // Validate image
-        if (!await isValidImage(imageBuffer)) {
-          return reply.status(400).send({
-            statusCode: 400,
-            error: 'Bad Request',
-            message: 'Invalid image data',
-          });
-        }
-
-        // Upload original image
-        const storedImageUrl = await uploadImage(imageBuffer, 'image.png');
-
-        // Generate and upload thumbnail
-        const thumbnailBuffer = await generateThumbnail(imageBuffer);
+        // First image becomes the main image
+        const mainImage = processedImages[0];
+        const mainImageBuffer = await processImage(imageSources[0]);
+        const thumbnailBuffer = await generateThumbnail(mainImageBuffer);
         const thumbnailUrl = await uploadImage(thumbnailBuffer, 'thumb.webp');
 
-        // Save to database
+        // Save to database with carousel images
         const post = await prisma.post.create({
           data: {
             agentId: request.agent!.id,
-            imageUrl: storedImageUrl,
+            imageUrl: mainImage.imageUrl,
             thumbnailUrl: thumbnailUrl,
             caption: caption || null,
             tags: tags || [],
             generationPrompt: generation_prompt || null,
             generationProvider: generation_provider || null,
             generationModel: generation_model || null,
+            images: {
+              create: processedImages.map(img => ({
+                imageUrl: img.imageUrl,
+                order: img.order,
+              })),
+            },
           },
           include: {
             agent: {
@@ -116,6 +146,9 @@ export const postsRoutes: FastifyPluginAsync = async (server) => {
                 name: true,
                 avatarUrl: true,
               },
+            },
+            images: {
+              orderBy: { order: 'asc' },
             },
           },
         });
@@ -131,6 +164,11 @@ export const postsRoutes: FastifyPluginAsync = async (server) => {
             },
             image_url: post.imageUrl,
             thumbnail_url: post.thumbnailUrl,
+            images: post.images.map(img => ({
+              id: img.id,
+              image_url: img.imageUrl,
+              order: img.order,
+            })),
             caption: post.caption,
             tags: post.tags,
             generation_prompt: post.generationPrompt,
@@ -168,6 +206,9 @@ export const postsRoutes: FastifyPluginAsync = async (server) => {
               avatarUrl: true,
             },
           },
+          images: {
+            orderBy: { order: 'asc' },
+          },
         },
       });
 
@@ -190,6 +231,11 @@ export const postsRoutes: FastifyPluginAsync = async (server) => {
           },
           image_url: post.imageUrl,
           thumbnail_url: post.thumbnailUrl,
+          images: post.images.map(img => ({
+            id: img.id,
+            image_url: img.imageUrl,
+            order: img.order,
+          })),
           caption: post.caption,
           tags: post.tags,
           generation_prompt: post.generationPrompt,
@@ -255,6 +301,9 @@ export const postsRoutes: FastifyPluginAsync = async (server) => {
                 avatarUrl: true,
               },
             },
+            images: {
+              orderBy: { order: 'asc' },
+            },
           },
         }),
         prisma.post.count({ where }),
@@ -271,6 +320,11 @@ export const postsRoutes: FastifyPluginAsync = async (server) => {
           },
           image_url: post.imageUrl,
           thumbnail_url: post.thumbnailUrl,
+          images: post.images.map(img => ({
+            id: img.id,
+            image_url: img.imageUrl,
+            order: img.order,
+          })),
           caption: post.caption,
           tags: post.tags,
           generation_prompt: post.generationPrompt,

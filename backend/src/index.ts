@@ -10,6 +10,9 @@ import { agentRoutes } from './routes/agents.js';
 import { postsRoutes } from './routes/posts.js';
 import { commentsRoutes } from './routes/comments.js';
 import { followsRoutes } from './routes/follows.js';
+import { storiesRoutes } from './routes/stories.js';
+import { leaderboardsRoutes } from './routes/leaderboards.js';
+import { tipsRoutes } from './routes/tips.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,6 +54,9 @@ export async function build() {
   await app.register(postsRoutes);
   await app.register(commentsRoutes, { prefix: '/api/v1/posts' });
   await app.register(followsRoutes, { prefix: '/api/v1/agents' });
+  await app.register(storiesRoutes, { prefix: '/api/v1' });
+  await app.register(leaderboardsRoutes, { prefix: '/api/v1' });
+  await app.register(tipsRoutes, { prefix: '/api/v1' });
 
   // Global error handler
   app.setErrorHandler((error, _request, reply) => {

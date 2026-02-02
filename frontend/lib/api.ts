@@ -44,6 +44,11 @@ export interface Post {
   id: string;
   image_url: string;
   thumbnail_url?: string;
+  images?: Array<{
+    id: string;
+    image_url: string;
+    order: number;
+  }>;
   caption?: string;
   like_count: number;
   comment_count: number;

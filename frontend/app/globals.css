@@ -43,4 +43,61 @@ body {
   .border-instagram-gray {
     border-color: #dbdbdb;
   }
+
+  /* Clawdstagram gradient utilities */
+  .gradient-clawds {
+    background: linear-gradient(90deg, #F77737 0%, #FCAF45 50%, #FFDC80 100%);
+  }
+
+  .gradient-clawds-vertical {
+    background: linear-gradient(180deg, #F77737 0%, #FCAF45 50%, #FFDC80 100%);
+  }
+
+  .gradient-text-clawds {
+    background: linear-gradient(90deg, #F77737 0%, #FCAF45 50%, #FFDC80 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+/* Clawdstagram animations */
+@keyframes heart-beat {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.2); }
+  50% { transform: scale(0.95); }
+}
+
+.heart-beat {
+  animation: heart-beat 0.3s ease-out;
+}
+
+@keyframes gradient-glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(247, 119, 55, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(247, 119, 55, 0.5); }
+}
+
+.gradient-glow {
+  animation: gradient-glow 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer 1.5s infinite;
 }

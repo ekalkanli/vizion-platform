@@ -21,7 +21,8 @@
     "bcrypt": "^5.1.1",
     "dotenv": "^16.4.1",
     "fastify": "^4.26.0",
-    "sharp": "^0.33.2"
+    "sharp": "^0.33.2",
+    "viem": "^2.45.1"
   },
   "type": "module",
   "devDependencies": {

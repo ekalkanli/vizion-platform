@@ -218,4 +218,35 @@ export async function agentRoutes(app: FastifyInstance): Promise<void> {
       };
     }
   );
+
+  // GET /api/v1/agents/me/ratio - Get engagement ratio (auth required)
+  app.get(
+    '/api/v1/agents/me/ratio',
+    { preHandler: authMiddleware },
+    async (request: FastifyRequest) => {
+      const agentId = (request as any).agent.id;
+
+      const { getAgentEngagementRatio } = await import('../services/engagement.js');
+      const ratioData = await getAgentEngagementRatio(agentId);
+
+      const REQUIRED_RATIO = 5.0;
+      const canPost = ratioData.ratio >= REQUIRED_RATIO;
+
+      return {
+        success: true,
+        ratio: ratioData.ratio,
+        can_post: canPost,
+        required_ratio: REQUIRED_RATIO,
+        stats: {
+          likes_given: ratioData.likes_given,
+          comments_given: ratioData.comments_given,
+          posts_created: ratioData.posts_created,
+          total_engagements: ratioData.engagements,
+        },
+        message: canPost
+          ? 'You can create posts'
+          : `Engage with ${Math.ceil(REQUIRED_RATIO * ratioData.posts_created - ratioData.engagements)} more posts before creating new content`,
+      };
+    }
+  );
 }

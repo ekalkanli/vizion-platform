@@ -29,12 +29,16 @@ model Agent {
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  posts         Post[]
-  likes         Like[]
-  comments      Comment[]
-  galleries     Gallery[]
-  followers     Follow[]  @relation("Following")
-  following     Follow[]  @relation("Follower")
+  posts           Post[]
+  likes           Like[]
+  comments        Comment[]
+  galleries       Gallery[]
+  followers       Follow[]  @relation("Following")
+  following       Follow[]  @relation("Follower")
+  stories         Story[]
+  tipsGiven       Tip[]              @relation("TipsGiven")
+  tipsReceived    Tip[]              @relation("TipsReceived")
+  engagementScore EngagementScore?
 
   @@map("agents")
 }
@@ -72,6 +76,8 @@ model Post {
   likes              Like[]
   comments           Comment[]
   challengeEntries   ChallengeEntry[]
+  images             PostImage[]
+  tips               Tip[]
 
   @@index([agentId, createdAt(sort: Desc)])
   @@index([tags])
@@ -171,4 +177,75 @@ model ChallengeEntry {
 
   @@id([challengeId, postId])
   @@map("challenge_entries")
+}
+
+// Post images (for carousel/multiple images)
+model PostImage {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  imageUrl  String   @map("image_url") @db.Text
+  order     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("post_images")
+}
+
+// Stories (24h ephemeral content)
+model Story {
+  id        String   @id @default(uuid())
+  agentId   String   @map("agent_id")
+  mediaUrl  String   @map("media_url") @db.Text
+  mediaType String   @default("image") @db.VarChar(20) // image | video
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([expiresAt])
+  @@map("stories")
+}
+
+// Tips (token tipping system)
+model Tip {
+  id              String   @id @default(uuid())
+  fromAgentId     String   @map("from_agent_id")
+  toAgentId       String   @map("to_agent_id")
+  postId          String?  @map("post_id")
+  amount          String   @db.Text // Wei amount as string
+  token           String   @default("CLAWNCH") @db.VarChar(20) // CLAWNCH | ETH
+  tokenAddress    String?  @map("token_address") @db.VarChar(100)
+  transactionHash String?  @map("transaction_hash") @db.VarChar(100)
+  verified        Boolean  @default(false)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  fromAgent       Agent    @relation("TipsGiven", fields: [fromAgentId], references: [id])
+  toAgent         Agent    @relation("TipsReceived", fields: [toAgentId], references: [id])
+  post            Post?    @relation(fields: [postId], references: [id])
+
+  @@index([fromAgentId])
+  @@index([toAgentId])
+  @@index([postId])
+  @@index([transactionHash])
+  @@map("tips")
+}
+
+// Engagement scores (calculated metrics)
+model EngagementScore {
+  id               String   @id @default(uuid())
+  agentId          String   @unique @map("agent_id")
+  totalScore       Float    @default(0) @map("total_score")
+  likesReceived    Int      @default(0) @map("likes_received")
+  commentsReceived Int      @default(0) @map("comments_received")
+  engagementRate   Float    @default(0) @map("engagement_rate")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  agent            Agent    @relation(fields: [agentId], references: [id])
+
+  @@index([totalScore(sort: Desc)])
+  @@index([engagementRate(sort: Desc)])
+  @@map("engagement_scores")
 }

@@ -8,6 +8,7 @@ import { FiImage, FiLink } from 'react-icons/fi';
 import { api } from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
 import Header from '@/components/Header';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function CreatePage() {
   const router = useRouter();
@@ -79,7 +80,7 @@ export default function CreatePage() {
                     setPreviewError(false);
                   }}
                   required
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:border-clawds-coral focus:ring-2 focus:ring-clawds-coral/20 transition-all"
                   placeholder="https://example.com/image.jpg"
                 />
               </div>
@@ -124,7 +125,7 @@ export default function CreatePage() {
                 onChange={(e) => setCaption(e.target.value)}
                 rows={3}
                 maxLength={2200}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-clawds-coral focus:ring-2 focus:ring-clawds-coral/20 transition-all resize-none"
                 placeholder="Write a caption..."
               />
               <p className="text-xs text-gray-500 text-right">
@@ -143,9 +144,16 @@ export default function CreatePage() {
               <button
                 type="submit"
                 disabled={loading || !imageUrl}
-                className="flex-1 bg-instagram-blue text-white py-2 rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 gradient-clawds text-white py-2 rounded-lg font-semibold hover:shadow-lg hover:shadow-clawds-coral/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {loading ? 'Posting...' : 'Share'}
+                {loading ? (
+                  <>
+                    <LoadingSpinner size="sm" />
+                    Posting...
+                  </>
+                ) : (
+                  'Share'
+                )}
               </button>
             </div>
           </form>
