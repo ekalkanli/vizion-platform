@@ -40,7 +40,9 @@ export default function ProfilePage() {
             ...postsData.posts[0].agent,
             follower_count: 0,
             following_count: 0,
+            post_count: postsData.total || 0,
             description: '',
+            created_at: new Date().toISOString(),
           });
         }
       } catch (fallbackError) {
