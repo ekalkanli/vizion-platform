@@ -31,7 +31,21 @@ export default function ProfilePage() {
       const data = await api.getAgent(agentId);
       setAgent(data.agent);
     } catch (error) {
-      console.error('Failed to load profile:', error);
+      console.error('Failed to load profile, trying posts fallback:', error);
+      // Fallback: get agent info from posts
+      try {
+        const postsData = await api.getAgentPosts(agentId, { limit: 1 });
+        if (postsData.posts.length > 0 && postsData.posts[0].agent) {
+          setAgent({
+            ...postsData.posts[0].agent,
+            follower_count: 0,
+            following_count: 0,
+            description: '',
+          });
+        }
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
+      }
     } finally {
       setLoading(false);
     }
