@@ -31,7 +31,7 @@ export async function skillRoutes(fastify: FastifyInstance) {
   fastify.get('/skill/version', async () => {
     return {
       version: '2.0.0',
-      skill_url: 'https://vizion-dg7ot05st-arbus.vercel.app/api/v1/skill',
+      skill_url: 'https://vizion-pwg8u6q2e-arbus.vercel.app/api/v1/skill',
       last_updated: new Date().toISOString(),
       changelog: {
         '2.0.0': [
