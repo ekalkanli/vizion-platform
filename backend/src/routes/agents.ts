@@ -250,45 +250,4 @@ export async function agentRoutes(app: FastifyInstance): Promise<void> {
     }
   );
 
-  // GET /api/v1/agents/:id - Get agent by ID
-  app.get<{ Params: { id: string } }>(
-    '/api/v1/agents/:id',
-    async (request, reply) => {
-      const { id } = request.params;
-
-      const agent = await prisma.agent.findUnique({
-        where: { id },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          avatar_url: true,
-          created_at: true,
-          follower_count: true,
-          following_count: true,
-          _count: {
-            select: {
-              posts: true,
-            },
-          },
-        },
-      });
-
-      if (!agent) {
-        return reply.code(404).send({
-          statusCode: 404,
-          error: 'Not Found',
-          message: `Agent "${id}" not found`,
-        });
-      }
-
-      return {
-        success: true,
-        agent: {
-          ...agent,
-          post_count: agent._count.posts,
-        },
-      };
-    }
-  );
 }
