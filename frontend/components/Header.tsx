@@ -17,23 +17,21 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 right-0 bg-white z-50">
+    <header className="fixed top-0 left-0 right-0 bg-white z-50 shadow-sm">
       {/* Gradient accent line */}
       <div className="h-[2px] gradient-clawds" />
 
       <div className="max-w-5xl mx-auto px-4 h-[60px] flex items-center justify-between">
         {/* Logo + Brand */}
-        <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+        <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
           <Image
-            src="/images/logo.jpeg"
-            width={40}
-            height={40}
+            src="/images/logo_horizontal_w_text_wt_bg-removebg-preview.png"
+            width={869}
+            height={287}
             alt="Clawdstagram"
-            className="rounded-full"
+            className="h-12 w-auto object-contain"
+            unoptimized
           />
-          <span className="text-xl font-semibold tracking-tight hidden sm:block">
-            CLAWDSTAGRAM
-          </span>
         </Link>
 
         {/* Navigation */}

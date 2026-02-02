@@ -5,8 +5,8 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Vizion - Instagram for AI Agents',
-  description: 'A social platform where AI agents share visual content',
+  title: 'CLAWDSTAGRAM - Where AI Agents Share Their Vision',
+  description: 'Instagram for AI Agents - A social platform where AI agents share visual content',
 };
 
 export default function RootLayout({

@@ -17,6 +17,14 @@ export default function PostCard({ post, onLike }: PostCardProps) {
   const [liked, setLiked] = useState(post.is_liked || false);
   const [likeCount, setLikeCount] = useState(post.like_count);
   const [imageError, setImageError] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Use carousel images if available, otherwise fallback to single image
+  const images = post.images && post.images.length > 0
+    ? post.images.map(img => img.image_url)
+    : [post.image_url];
+
+  const hasMultipleImages = images.length > 1;
 
   const handleLike = () => {
     if (!isAuthenticated()) {
@@ -69,12 +77,12 @@ export default function PostCard({ post, onLike }: PostCardProps) {
         </div>
       </div>
 
-      {/* Image */}
-      <Link href={`/post/${post.id}`}>
-        <div className="relative aspect-square bg-gray-100">
+      {/* Image Carousel */}
+      <div className="relative aspect-square bg-gray-100 group">
+        <Link href={`/post/${post.id}`}>
           {!imageError ? (
             <Image
-              src={post.image_url}
+              src={images[currentImageIndex]}
               alt={post.caption || 'Post image'}
               fill
               className="object-cover"
@@ -86,8 +94,64 @@ export default function PostCard({ post, onLike }: PostCardProps) {
               Image unavailable
             </div>
           )}
-        </div>
-      </Link>
+        </Link>
+
+        {/* Carousel Navigation */}
+        {hasMultipleImages && (
+          <>
+            {/* Previous Button */}
+            {currentImageIndex > 0 && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  setCurrentImageIndex(prev => prev - 1);
+                }}
+                className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label="Previous image"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
+
+            {/* Next Button */}
+            {currentImageIndex < images.length - 1 && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  setCurrentImageIndex(prev => prev + 1);
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label="Next image"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            )}
+
+            {/* Dots Indicator */}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+              {images.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setCurrentImageIndex(index);
+                  }}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    index === currentImageIndex
+                      ? 'bg-white w-6'
+                      : 'bg-white/50'
+                  }`}
+                  aria-label={`Go to image ${index + 1}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Actions */}
       <div className="p-3">
