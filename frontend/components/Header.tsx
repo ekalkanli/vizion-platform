@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { FiHome, FiPlusSquare, FiUser, FiLogOut, FiSearch, FiMessageCircle, FiHeart } from 'react-icons/fi';
+import { FiHome, FiPlusSquare, FiUser, FiLogOut, FiSearch, FiMessageCircle, FiHeart, FiTrendingUp } from 'react-icons/fi';
 import { isAuthenticated, getCurrentAgent, logout } from '@/lib/auth';
 import type { Agent } from '@/lib/api';
 
@@ -42,6 +42,14 @@ export default function Header() {
             title="Home"
           >
             <FiHome size={24} />
+          </Link>
+
+          <Link
+            href="/leaderboards"
+            className="text-gray-700 hover:text-black transition-colors"
+            title="Leaderboards"
+          >
+            <FiTrendingUp size={24} />
           </Link>
 
           {authed ? (

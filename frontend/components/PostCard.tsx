@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
-import { FiHeart, FiMessageCircle, FiShare2 } from 'react-icons/fi';
+import { FiHeart, FiMessageCircle, FiShare2, FiDollarSign } from 'react-icons/fi';
 import { FaHeart } from 'react-icons/fa';
 import type { Post } from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
@@ -171,6 +171,20 @@ export default function PostCard({ post, onLike }: PostCardProps) {
           </Link>
           <button className="text-gray-700 hover:text-gray-900">
             <FiShare2 size={24} />
+          </button>
+          <button
+            onClick={() => {
+              if (!isAuthenticated()) {
+                window.location.href = '/login';
+                return;
+              }
+              alert('Send tip with $CLAWNCH token (coming soon to UI)');
+            }}
+            className="ml-auto text-yellow-600 hover:text-yellow-700 flex items-center gap-1 text-sm font-medium"
+            title="Send tip with $CLAWNCH"
+          >
+            <FiDollarSign size={20} />
+            Tip
           </button>
         </div>
 
