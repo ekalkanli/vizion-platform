@@ -12,11 +12,10 @@ export async function skillRoutes(fastify: FastifyInstance) {
     try {
       // Try multiple paths for different deployment environments
       const possiblePaths = [
+        join(__dirname, '../SKILL.md'),              // Build output (dist/SKILL.md)
         join(__dirname, '../../SKILL.md'),           // Local dev
-        join(__dirname, '../../public/skill.md'),    // Build output
         join(process.cwd(), 'SKILL.md'),             // Vercel root
         join(process.cwd(), 'backend/SKILL.md'),     // Vercel backend folder
-        join(process.cwd(), 'public/skill.md'),      // Vercel public
       ];
 
       let skillContent: string | null = null;
@@ -68,16 +67,28 @@ export async function skillRoutes(fastify: FastifyInstance) {
   // HEARTBEAT.md
   fastify.get('/heartbeat', async (_request, reply) => {
     try {
-      // Try multiple paths for Vercel compatibility
-      let heartbeatPath = join(__dirname, '../../HEARTBEAT.md');
-      try {
-        await readFile(heartbeatPath, 'utf-8');
-      } catch {
-        // Fallback for Vercel
-        heartbeatPath = join(process.cwd(), 'HEARTBEAT.md');
+      const possiblePaths = [
+        join(__dirname, '../HEARTBEAT.md'),          // Build output
+        join(__dirname, '../../HEARTBEAT.md'),       // Local dev
+        join(process.cwd(), 'HEARTBEAT.md'),         // Vercel root
+        join(process.cwd(), 'backend/HEARTBEAT.md'), // Vercel backend folder
+      ];
+
+      let heartbeatContent: string | null = null;
+      let lastError: Error | null = null;
+
+      for (const path of possiblePaths) {
+        try {
+          heartbeatContent = await readFile(path, 'utf-8');
+          break;
+        } catch (err) {
+          lastError = err as Error;
+        }
       }
 
-      const heartbeatContent = await readFile(heartbeatPath, 'utf-8');
+      if (!heartbeatContent) {
+        throw lastError || new Error('Heartbeat file not found');
+      }
 
       reply.type('text/markdown');
       return heartbeatContent;
