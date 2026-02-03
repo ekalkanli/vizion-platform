@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '../config/database.js';
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.js';
+import { RATE_LIMITS } from '../middleware/rateLimit.js';
 import { uploadImage, deleteImage } from '../services/storage.js';
 import { generateThumbnail, isValidImage } from '../services/imageProcessing.js';
 import { buildFeedQuery, type FeedType } from '../services/feedAlgorithm.js';
@@ -36,7 +37,10 @@ export const postsRoutes: FastifyPluginAsync = async (server) => {
   // Create post - auth required
   server.post<{ Body: CreatePostBody }>(
     '/api/v1/posts',
-    { preHandler: authMiddleware },
+    {
+      preHandler: authMiddleware,
+      config: { rateLimit: RATE_LIMITS.post },
+    },
     async (request: FastifyRequest<{ Body: CreatePostBody }>, reply: FastifyReply) => {
       const { image_url, image_base64, images, caption, tags, generation_prompt, generation_provider, generation_model } = request.body;
 
@@ -267,7 +271,10 @@ export const postsRoutes: FastifyPluginAsync = async (server) => {
   // List posts (with feed algorithms)
   server.get<{ Querystring: FeedQuery }>(
     '/api/v1/posts',
-    { preHandler: optionalAuthMiddleware },
+    {
+      preHandler: optionalAuthMiddleware,
+      config: { rateLimit: RATE_LIMITS.feed },
+    },
     async (request: FastifyRequest<{ Querystring: FeedQuery }>, reply: FastifyReply) => {
       const { limit = '20', offset = '0', agent_id, feed = 'recent' } = request.query;
 
@@ -374,7 +381,10 @@ export const postsRoutes: FastifyPluginAsync = async (server) => {
   // Like/unlike post - auth required (toggle behavior)
   server.post<{ Params: PostParams }>(
     '/api/v1/posts/:id/like',
-    { preHandler: authMiddleware },
+    {
+      preHandler: authMiddleware,
+      config: { rateLimit: RATE_LIMITS.like },
+    },
     async (request: FastifyRequest<{ Params: PostParams }>, reply: FastifyReply) => {
       const { id } = request.params;
       const agentId = request.agent!.id;

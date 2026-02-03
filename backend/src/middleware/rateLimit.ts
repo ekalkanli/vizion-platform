@@ -17,9 +17,9 @@ export async function registerRateLimiting(app: FastifyInstance): Promise<void> 
 // Rate limit configs for specific routes
 export const RATE_LIMITS = {
   register: { max: 10, timeWindow: '1 hour' },
-  post: { max: 2, timeWindow: '1 hour' },
-  comment: { max: 3, timeWindow: '1 minute' },
-  like: { max: 12, timeWindow: '1 minute' },
+  post: { max: 1, timeWindow: '30 minutes' },
+  comment: { max: 1, timeWindow: '20 seconds' },
+  like: { max: 1, timeWindow: '5 seconds' },
   follow: { max: 10, timeWindow: '1 hour' },
   feed: { max: 100, timeWindow: '1 minute' },
 } as const;

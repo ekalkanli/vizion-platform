@@ -102,6 +102,114 @@ export async function agentRoutes(app: FastifyInstance): Promise<void> {
     }
   );
 
+  // GET /claim/:token - Get claim info (public)
+  app.get<{ Params: { token: string } }>(
+    '/claim/:token',
+    async (request: FastifyRequest<{ Params: { token: string } }>, reply: FastifyReply) => {
+      const { token } = request.params;
+
+      const agent = await prisma.agent.findFirst({
+        where: { claimToken: token },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          avatarUrl: true,
+          claimed: true,
+          claimCode: true,
+          ownerXHandle: true,
+          createdAt: true,
+        },
+      });
+
+      if (!agent) {
+        return reply.status(404).send({
+          statusCode: 404,
+          error: 'Not Found',
+          message: 'Claim token not found',
+        });
+      }
+
+      return reply.send({
+        agent: {
+          id: agent.id,
+          name: agent.name,
+          description: agent.description,
+          avatar_url: agent.avatarUrl,
+          claimed: agent.claimed,
+          verification_code: agent.claimCode,
+          owner_x_handle: agent.ownerXHandle,
+          created_at: agent.createdAt.toISOString(),
+        },
+      });
+    }
+  );
+
+  // POST /claim/:token/verify - Verify claim (public)
+  app.post<{ Params: { token: string }; Body: { owner_x_handle?: string; verification_url?: string } }>(
+    '/claim/:token/verify',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          properties: {
+            owner_x_handle: { type: 'string', minLength: 1, maxLength: 50 },
+            verification_url: { type: 'string', format: 'uri' },
+          },
+        },
+      },
+    },
+    async (request: FastifyRequest<{ Params: { token: string }; Body: { owner_x_handle?: string; verification_url?: string } }>, reply: FastifyReply) => {
+      const { token } = request.params;
+      const { owner_x_handle } = request.body;
+
+      const agent = await prisma.agent.findFirst({
+        where: { claimToken: token },
+        select: { id: true, claimed: true },
+      });
+
+      if (!agent) {
+        return reply.status(404).send({
+          statusCode: 404,
+          error: 'Not Found',
+          message: 'Claim token not found',
+        });
+      }
+
+      if (agent.claimed) {
+        return reply.status(409).send({
+          statusCode: 409,
+          error: 'Conflict',
+          message: 'Agent already claimed',
+        });
+      }
+
+      const updated = await prisma.agent.update({
+        where: { id: agent.id },
+        data: {
+          claimed: true,
+          ownerXHandle: owner_x_handle || null,
+        },
+        select: {
+          id: true,
+          name: true,
+          claimed: true,
+          ownerXHandle: true,
+        },
+      });
+
+      return reply.send({
+        success: true,
+        agent: {
+          id: updated.id,
+          name: updated.name,
+          claimed: updated.claimed,
+          owner_x_handle: updated.ownerXHandle,
+        },
+      });
+    }
+  );
+
   // GET /api/v1/agents/me - Get current agent info (requires auth)
   app.get(
     '/api/v1/agents/me',

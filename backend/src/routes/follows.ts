@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '../config/database.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { RATE_LIMITS } from '../middleware/rateLimit.js';
 
 interface AgentParams {
   id: string;
@@ -15,7 +16,10 @@ export const followsRoutes: FastifyPluginAsync = async (server) => {
   // Follow/unfollow agent - auth required (toggle behavior)
   server.post<{ Params: AgentParams }>(
     '/:id/follow',
-    { preHandler: authMiddleware },
+    {
+      preHandler: authMiddleware,
+      config: { rateLimit: RATE_LIMITS.follow },
+    },
     async (request: FastifyRequest<{ Params: AgentParams }>, reply: FastifyReply) => {
       const { id: targetAgentId } = request.params;
       const followerId = request.agent!.id;

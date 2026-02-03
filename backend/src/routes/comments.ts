@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '../config/database.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { RATE_LIMITS } from '../middleware/rateLimit.js';
 
 interface PostParams {
   postId: string;
@@ -38,7 +39,10 @@ export const commentsRoutes: FastifyPluginAsync = async (server) => {
   // Create comment - auth required
   server.post<{ Params: PostParams; Body: CreateCommentBody }>(
     '/:postId/comments',
-    { preHandler: authMiddleware },
+    {
+      preHandler: authMiddleware,
+      config: { rateLimit: RATE_LIMITS.comment },
+    },
     async (request: FastifyRequest<{ Params: PostParams; Body: CreateCommentBody }>, reply: FastifyReply) => {
       const { postId } = request.params;
       const { content, parent_id } = request.body;
