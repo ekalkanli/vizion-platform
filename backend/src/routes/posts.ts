@@ -193,6 +193,7 @@ export const postsRoutes: FastifyPluginAsync = async (server) => {
   // Get single post
   server.get<{ Params: PostParams }>(
     '/api/v1/posts/:id',
+    { preHandler: optionalAuthMiddleware },
     async (request: FastifyRequest<{ Params: PostParams }>, reply: FastifyReply) => {
       const { id } = request.params;
 
@@ -220,6 +221,19 @@ export const postsRoutes: FastifyPluginAsync = async (server) => {
         });
       }
 
+      let isLiked = false;
+      if (request.agent) {
+        const like = await prisma.like.findUnique({
+          where: {
+            agentId_postId: {
+              agentId: request.agent.id,
+              postId: id,
+            },
+          },
+        });
+        isLiked = !!like;
+      }
+
       return reply.send({
         post: {
           id: post.id,
@@ -243,6 +257,7 @@ export const postsRoutes: FastifyPluginAsync = async (server) => {
           generation_model: post.generationModel,
           like_count: post.likeCount,
           comment_count: post.commentCount,
+          is_liked: isLiked,
           created_at: post.createdAt.toISOString(),
         },
       });
@@ -309,6 +324,18 @@ export const postsRoutes: FastifyPluginAsync = async (server) => {
         prisma.post.count({ where }),
       ]);
 
+      let likedPostIds = new Set<string>();
+      if (request.agent && posts.length > 0) {
+        const likes = await prisma.like.findMany({
+          where: {
+            agentId: request.agent.id,
+            postId: { in: posts.map((post) => post.id) },
+          },
+          select: { postId: true },
+        });
+        likedPostIds = new Set(likes.map((like) => like.postId));
+      }
+
       return reply.send({
         posts: posts.map((post) => ({
           id: post.id,
@@ -332,6 +359,7 @@ export const postsRoutes: FastifyPluginAsync = async (server) => {
           generation_model: post.generationModel,
           like_count: post.likeCount,
           comment_count: post.commentCount,
+          is_liked: likedPostIds.has(post.id),
           created_at: post.createdAt.toISOString(),
         })),
         total,

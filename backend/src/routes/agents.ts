@@ -164,9 +164,64 @@ export async function agentRoutes(app: FastifyInstance): Promise<void> {
     }
   );
 
-  // GET /api/v1/agents/:name - Get agent by name (public)
+  // GET /api/v1/agents/:id - Get agent by id (public)
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/agents/:id',
+    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+      const { id } = request.params;
+
+      const agent = await prisma.agent.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          avatarUrl: true,
+          styleTags: true,
+          karma: true,
+          claimed: true,
+          createdAt: true,
+          _count: {
+            select: {
+              posts: true,
+              followers: true,
+              following: true,
+            },
+          },
+        },
+      });
+
+      if (!agent) {
+        return reply.status(404).send({
+          statusCode: 404,
+          error: 'Not Found',
+          message: 'Agent not found',
+        });
+      }
+
+      return {
+        agent: {
+          id: agent.id,
+          name: agent.name,
+          description: agent.description,
+          avatar_url: agent.avatarUrl,
+          style_tags: agent.styleTags,
+          karma: agent.karma,
+          claimed: agent.claimed,
+          created_at: agent.createdAt.toISOString(),
+          stats: {
+            posts: agent._count.posts,
+            followers: agent._count.followers,
+            following: agent._count.following,
+          },
+        },
+      };
+    }
+  );
+
+  // GET /api/v1/agents/by-name/:name - Get agent by name (public)
   app.get<{ Params: { name: string } }>(
-    '/api/v1/agents/:name',
+    '/api/v1/agents/by-name/:name',
     async (request: FastifyRequest<{ Params: { name: string } }>, reply: FastifyReply) => {
       const { name } = request.params;
 
@@ -216,6 +271,88 @@ export async function agentRoutes(app: FastifyInstance): Promise<void> {
           },
         },
       };
+    }
+  );
+
+  // GET /api/v1/agents/:id/posts - Get posts for an agent (public)
+  app.get(
+    '/api/v1/agents/:id/posts',
+    async (
+      request: FastifyRequest<{ Params: { id: string }; Querystring: { limit?: string; offset?: string } }>,
+      reply: FastifyReply
+    ) => {
+      const { id } = request.params;
+      const { limit = '20', offset = '0' } = request.query;
+
+      const take = Math.min(parseInt(limit, 10) || 20, 100);
+      const skip = parseInt(offset, 10) || 0;
+
+      // Ensure agent exists
+      const agent = await prisma.agent.findUnique({
+        where: { id },
+        select: { id: true },
+      });
+
+      if (!agent) {
+        return reply.status(404).send({
+          statusCode: 404,
+          error: 'Not Found',
+          message: 'Agent not found',
+        });
+      }
+
+      const [posts, total] = await Promise.all([
+        prisma.post.findMany({
+          where: { agentId: id },
+          take,
+          skip,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            agent: {
+              select: {
+                id: true,
+                name: true,
+                avatarUrl: true,
+              },
+            },
+            images: {
+              orderBy: { order: 'asc' },
+            },
+          },
+        }),
+        prisma.post.count({ where: { agentId: id } }),
+      ]);
+
+      return reply.send({
+        posts: posts.map((post) => ({
+          id: post.id,
+          agent_id: post.agentId,
+          agent: {
+            id: post.agent.id,
+            name: post.agent.name,
+            avatar_url: post.agent.avatarUrl,
+          },
+          image_url: post.imageUrl,
+          thumbnail_url: post.thumbnailUrl,
+          images: post.images.map((img) => ({
+            id: img.id,
+            image_url: img.imageUrl,
+            order: img.order,
+          })),
+          caption: post.caption,
+          tags: post.tags,
+          generation_prompt: post.generationPrompt,
+          generation_provider: post.generationProvider,
+          generation_model: post.generationModel,
+          like_count: post.likeCount,
+          comment_count: post.commentCount,
+          created_at: post.createdAt.toISOString(),
+        })),
+        total,
+        limit: take,
+        offset: skip,
+        has_more: posts.length === take,
+      });
     }
   );
 

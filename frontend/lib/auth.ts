@@ -2,7 +2,7 @@
 
 import { Agent, apiCall } from './api';
 
-const API_BASE_URL = 'http://localhost:3001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const STORAGE_KEY = 'vizion_api_key';
 const AGENT_KEY = 'vizion_agent';
 

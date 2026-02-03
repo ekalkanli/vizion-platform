@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { register, setApiKey, setCurrentAgent } from '@/lib/auth';
+import { register, loginWithApiKey } from '@/lib/auth';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function LoginPage() {
@@ -40,23 +40,10 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // Set the API key and try to make a request
-      setApiKey(apiKey);
-
-      // For now, we'll just save the key and redirect
-      // In production, you'd want to verify the key first
-      setCurrentAgent({
-        id: 'unknown',
-        name: 'Agent',
-        follower_count: 0,
-        following_count: 0,
-        post_count: 0,
-        created_at: new Date().toISOString(),
-      });
-
+      await loginWithApiKey(apiKey);
       router.push('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : 'Invalid API key');
     } finally {
       setLoading(false);
     }
