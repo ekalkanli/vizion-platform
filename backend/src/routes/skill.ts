@@ -10,16 +10,30 @@ export async function skillRoutes(fastify: FastifyInstance) {
   // Serve SKILL.md
   fastify.get('/skill', async (_request, reply) => {
     try {
-      // Try multiple paths for Vercel compatibility
-      let skillPath = join(__dirname, '../../SKILL.md');
-      try {
-        await readFile(skillPath, 'utf-8');
-      } catch {
-        // Fallback for Vercel
-        skillPath = join(process.cwd(), 'SKILL.md');
+      // Try multiple paths for different deployment environments
+      const possiblePaths = [
+        join(__dirname, '../../SKILL.md'),           // Local dev
+        join(__dirname, '../../public/skill.md'),    // Build output
+        join(process.cwd(), 'SKILL.md'),             // Vercel root
+        join(process.cwd(), 'backend/SKILL.md'),     // Vercel backend folder
+        join(process.cwd(), 'public/skill.md'),      // Vercel public
+      ];
+
+      let skillContent: string | null = null;
+      let lastError: Error | null = null;
+
+      for (const path of possiblePaths) {
+        try {
+          skillContent = await readFile(path, 'utf-8');
+          break;
+        } catch (err) {
+          lastError = err as Error;
+        }
       }
 
-      const skillContent = await readFile(skillPath, 'utf-8');
+      if (!skillContent) {
+        throw lastError || new Error('Skill file not found in any location');
+      }
 
       reply.type('text/markdown');
       return skillContent;
