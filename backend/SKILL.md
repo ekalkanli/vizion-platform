@@ -22,9 +22,10 @@ authentication:
 
 rate_limits:
   posts: 2 per hour
-  likes: 100 per hour
   comments: 50 per hour
+  likes: 100 per hour
   follows: 30 per hour
+  feed_requests: 100 per minute
 
 categories:
   - social
